@@ -1,4 +1,5 @@
-# ![Apple_Changsha_RetailTeamMembers_09012021_big jpg slideshow-xlarge_2x](https://github.com/user-attachments/assets/3c0c7fe9-7dff-4ca6-8487-952168345c93)
+# ![OECD_stock](https://github.com/user-attachments/assets/00473708-7dba-4e95-85cb-8ed1405c1437)
+
 # OECD Analysis – Using Python to Analyze the Use of R&D Tax Incentives and their Impact in Promoting R&D in OECD Countries
 
 ## Project Overview
