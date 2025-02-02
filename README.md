@@ -144,15 +144,21 @@ oecd_data = final_df_updated[final_df_updated['OECD'] == 1]
 # Perform exploratory data analysis
 import seaborn as sns
 import matplotlib.pyplot as plt
-```
-6. We’ll now observe the top ten countries for R&D tax subsidies (found by calculating the difference between non-R&D and R&D EATR’s), and we do so as a means of clearly seeing which nations provide the most generous incentives for R&D. We find that Slovakia, France, and Portugal top the list.
-```python
+
 # Calculate summary statistics for OECD countries
 summary_stats = oecd_data.groupby('country')[['EATR_rd', 'EATR_nrd', 'rd_gdp', 'df_gdp']].mean().sort_values('rd_gdp', ascending=False)
 
 print("\
 Top 10 OECD countries by R&D investment (% of GDP):")
 print(summary_stats[['rd_gdp', 'EATR_rd', 'df_gdp']].head(10))
+```
+6. We’ll now observe the top ten countries for R&D tax subsidies (found by calculating the difference between non-R&D and R&D EATR’s), and we do so as a means of clearly seeing which nations provide the most generous incentives for R&D. We find that Slovakia, France, and Portugal top the list.
+```python
+# Calculate average tax subsidy by country
+avg_subsidy = oecd_data.groupby('country')['tax_subsidy'].mean().sort_values(ascending=False)
+print("\
+Top 10 countries by R&D tax subsidy:")
+print(avg_subsidy.head(10))
 ```
 7. Next, we’ll visualize the relationship between R&D tax incentives/subsidies and business expenditure for R&D using scatterplots. The first observes the relationship between the EATR on R&D and the business expenditure for R&D, and the second one shows the tax subsidy (which we’ve calculated in the previous step) and its relation to business expenditure for R&D.
 ```python
@@ -183,12 +189,6 @@ plt.ylabel('R&D Investment as % of GDP')
 plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title='Country')
 plt.grid(True)
 plt.show()
-
-# Calculate average tax subsidy by country
-avg_subsidy = oecd_data.groupby('country')['tax_subsidy'].mean().sort_values(ascending=False)
-print("\
-Top 10 countries by R&D tax subsidy:")
-print(avg_subsidy.head(10))
 ```
  ![OECD1](https://github.com/user-attachments/assets/4fd16bd4-4337-43c5-ad8d-e389d327a9b0)
  ![OECD2](https://github.com/user-attachments/assets/b605cc0b-e0c9-4144-b356-0d7936939d8b)
@@ -216,23 +216,18 @@ To conclude, we have learned that the R&D tax incentives imposed by OECD member 
 
 ## Project Focus
 
-This project primarily focuses on developing and showcasing the following SQL skills:
+This project primarily focuses on developing and showcasing the following Python libraries:
 
-- **Complex Joins and Aggregations**: Demonstrating the ability to perform complex SQL joins and aggregate data meaningfully.
-- **Window Functions**: Using advanced window functions for running totals, growth analysis, and time-based queries.
-- **Data Segmentation**: Analyzing data across different time frames to gain insights into product performance.
-- **Correlation Analysis**: Applying SQL functions to determine relationships between variables, such as product price and warranty claims.
-- **Real-World Problem Solving**: Answering business-related questions that reflect real-world scenarios faced by data analysts.
+- **pandas**: Demonstrating the ability to perform essential wrangling, cleaning, and organization of the data.
+- **seaborn**: Creating minimalistic yet robust visualizations to clearly illustrate patterns.
+- **matplotlib.pyplot**: To enchance the visual appeal and clarity of the data visualizations.
 
-
-## Dataset
-
-- **Size**: 1 million+ rows of sales data.
-- **Period Covered**: The data spans multiple years, allowing for long-term trend analysis.
-- **Geographical Coverage**: Sales data from Apple stores across various countries.
+With the following learning outcomes:
+- **Correlation Analysis**: Applying python functions to determine relationships between variables.
+- **Real-World Problem Solving**: Answering macroeconomic-related questions that reflect real-world scenarios faced by economists.
 
 ## Conclusion
 
-By completing this project, I have developed advanced SQL querying skills, improved my ability to handle large datasets, and gained practical experience in solving complex data analysis problems that are crucial for business decision-making.
+By completing this project, I have developed Python skills, improved my ability to perform statistical analyses, and gained practical experience in explaining the processes and making sense of the data, crucial for economic policymaking.
 
 ---
