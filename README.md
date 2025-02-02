@@ -1,4 +1,4 @@
-# ![OECD_stock](https://github.com/user-attachments/assets/00473708-7dba-4e95-85cb-8ed1405c1437)
+# ![oecd_stock1](https://github.com/user-attachments/assets/cc52fcdd-0ca1-4b19-97cf-348c7ab1bba2)
 
 # OECD Analysis – Using Python to Analyze the Use of R&D Tax Incentives and their Impact in Promoting R&D in OECD Countries
 
