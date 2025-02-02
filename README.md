@@ -1,41 +1,37 @@
 # ![Apple_Changsha_RetailTeamMembers_09012021_big jpg slideshow-xlarge_2x](https://github.com/user-attachments/assets/3c0c7fe9-7dff-4ca6-8487-952168345c93)
-# Apple Retail Sales SQL Project - Analyzing Millions of Sales Rows
+# OECD Analysis – Using Python to Analyze the Use of R&D Tax Incentives and their Impact in Promoting R&D in OECD Countries
 
 ## Project Overview
 
-This project is designed to showcase advanced SQL querying techniques through the analysis of over 1 million rows of Apple retail sales data. The dataset includes information about products, stores, sales transactions, and warranty claims across various Apple retail locations globally. By tackling a variety of questions, from basic to complex, I've demonstrated my ability to write sophisticated SQL queries that extract valuable insights from large datasets.
-
-## Entity Relationship Diagram (ERD)
-
-![erd](https://github.com/user-attachments/assets/1ea4b87d-2dc8-4d5c-87f2-982eaf04ab26)
+This project is designed to showcase profieiency in Python, particularly with cleaning and wrangling data, along with demonstrating a statistical analysis and data storytelling. The dataset includes information about countries (and their OECD membership status), various tax rates, R&D incentives and support within countries, and R&D expenditures.
 
 ---
 
 ### Why I Chose This Project?
-- **Hands-on Learning**: Practical experience with complex datasets and advanced business problem-solving.
-- **Comprehensive Coverage**: Comprehensive datasets with over 1 million rows, including sales, stores, product categories, products, and warranties. Each table has provided new opportunities for me to hone in on SQL concepts. 100 SQL problems, 20 advanced query solutions, and a real-world project.
+- **Hands-on Learning**: Practical experience with real macroeconomic data and advanced economic problem-solving.
+- **Practicality**: This analysis appears to be relevant to that work that is done in the OECD, as this analysis was inspired by an economist working in the organization's Centre for Tax Policy and Administration.
 
-## Database Schema
+## Data Sheets from the .CSV File
 
-The project uses five main tables:
+The project uses three main sheets:
 
-1. **ISO**: Contains information about Apple retail stores.
+1. **ISO**: 3-digit country codes and a dummy for OECD membership.
    - `country`: Country name.
    - `code`: ISO code.
    - `OECD`: Indicator for OECD membership.
 
-2. **EATR**: Holds product category information.
+2. **EATR**: Estimates of the Effective Average Tax Rate (EATR) for R&D and non-R&D investments for different countries for the years 2019 and 2020. These indicators provide an overview of the tax burden on a hypothetical firm making a standardised R&D investment and benefitting from R&D tax incentives versus a comparable non-R&D investment that does not benefit from R&D tax incentives.
    - `code`: ISO Code.
    - `year`: Year.
    - `STR`: Statutory CIT rate.
    - `EATR_rd`: Effective Average Tax Rate for an R&D investment (including R&D tax incentives).
    - `EATR_nrd`: Effective Average Tax Rate for an non-R&D investment (excluding R&D tax incentives).
 
-3. **R&D intensity and government support**: Details about Apple products.
+3. **R&D intensity and government support**: An indicator on R&D intensity by businesses and an indicator for the amount of support governments provide for R&D through direct spending (as opposed to tax breaks).
    - `rd_gdp`: Business R&D expenditure (% GDP).
    - `df_gdp`: Direct government support for R&D, i.e. subsidies or grants given to R&D investment (% GDP).
 
-## Objectives
+## Objective and Workflow
 
 The project is split into three tiers of questions to test SQL skills of increasing complexity:
 
