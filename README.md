@@ -33,367 +33,186 @@ The project uses three main sheets:
 
 ## Objective and Workflow
 
-The project is split into three tiers of questions to test SQL skills of increasing complexity:
+Our goal today is to analyze how R&D tax incentives may affect firms’ incentives to invest in R&D within OECD countries, and we will do this by performing an exploratory data analysis including some graphs and basic statistics that can visualize this.
 
-1. Find the number of stores in each country.
-```sql
-   select 
-	country,
-	count(store_id) as total_stores
-from stores
-group by(1)
-order by(2) desc;
-```
-2. Calculate the total number of units sold by each store.
-```sql
-select
-	s.store_id,
-	st.store_name,
-	sum (s.quantity) as total_unit_sold
-from sales as s
-join stores as st
-on st.store_id = s.store_id
-group by 1, 2
-order by 3 desc;
+1. To start, we merge the last three tabs of the excel file into one tab to create a more user-friendly ecosystem to perform the analysis. This new tab includes the country codes, years, tax rates, government support data, and OECD membership status.
+```python
+# Load all sheets from the Excel file
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-```
-3. Identify how many sales occurred in December 2023.
-```sql
-select 
-	count(sale_id) as total_sale
-from sales
-where to_char(sale_date,'mm-yyyy') = '12-2023';
-```
-4. Determine how many stores have never had a warranty claim filed.
-```sql
-select count(*) from stores
-where store_id not in (
-						select 
-							distinct store_id
-						from sales as s
-						right join warranty as w
-						on s.sale_id = w.sale_id
-						);
-```
-5. Calculate the percentage of warranty claims marked as "Warranty Void".
-```sql
-select
-	round
-		(count(claim_id)/
-						(select count(*) from warranty)::numeric
-		* 100,
-	2) as warranty_void_percentage
-from warranty
-where repair_status = 'Warranty Void';
-```
-6. Identify which store had the highest total units sold in the last year.
-```sql
-select
-	round
-		(count(claim_id)/
-						(select count(*) from warranty)::numeric
-		* 100,
-	2) as warranty_void_percentage
-from warranty
-where repair_status = 'Warranty Void';
-```
-7. Count the number of unique products sold in the last year.
-```sql
-select 
-	count(distinct product_id)
-from sales 
-where sale_date >= (current_date - interval '1 year');
-```
-8. Find the average price of products in each category.
-```sql
-select
-	p.category_id,
-	c.category_name,
-	avg(p.price) as average_price
-from products as p
-join
-category as c
-on p.category_id = c.category_id
-group by 1, 2
-order by 3 desc;
-```
-9. How many warranty claims were filed in 2020?
-```sql
-select
-	count(*) as warranty_claim
-from warranty
-where extract(year from claim_date) = 2020;
-```
-10. For each store, identify the best-selling day based on highest quantity sold.
-```sql
-select *
-from 
-(
-	select
-		store_id,
-		to_char(sale_date, 'Day') as day_name,
-		sum(quantity) as total_units_sold,
-		rank() over(partition by store_id order by sum(quantity) desc) as rank
-	from sales
-	group by 1,2
-) as tl
-where rank = 1;
-```
-11. Identify the least selling product in each country for each year based on total units sold.
-```sql
-with product_rank
-as
-(
-select
-	st.country,
-	p.product_name,
-	sum(s.quantity) as total_qty_sold,
-	rank() over(partition by st.country order by sum(s.quantity)) as rank
-from sales as s
-join 
-stores as st
-on s.store_id = st.store_id
-join
-products as p
-on s.product_id = p.product_id
-group by 1,2
-)
-select
-*
-from product_rank
-where rank = 1;
-```
-12. Calculate how many warranty claims were filed within 180 days of a product sale.
-```sql
-select
-	count(*)
-from warranty as w
-left join
-sales as s
-on s.sale_id = w.sale_id
-where
-	w.claim_date - sale_date <=180;
-```
-13. Determine how many warranty claims were filed for products launched in the last two years.
-```sql
-select
-	p.product_name,
-	count(w.claim_id)as no_claim,
-	count(s.sale_id)
-from warranty as w
-right join
-sales as s
-on s.sale_id = w.sale_id
-join
-products as p
-on p.product_id = s.product_id
-where p.launch_date >= current_date - interval '2 years'
-group by 1
-having count(w.claim_id) > 0;
-```
-14. List the months in the last three years where sales exceeded 5,000 units in the USA.
-```sql
-select
-	to_char(sale_date, 'MM-YYY') as month,
-	sum(s.quantity) as total_units_sold
-from sales as s
-join
-stores as st
-on s.store_id = st.store_id
-where
-	st.country = 'USA'
-	and
-	s.sale_date >= current_date - interval '3 year'
-group by 1
-having sum(s.quantity) >= 5000;
-```
-15. Identify the product category with the most warranty claims filed in the last two years.
-```sql
-select
-	c.category_name,
-	count(w.claim_id) as total_claims
-from warranty as w
-left join
-sales as s
-on w.sale_id = s.sale_id
-join products as p
-on p.product_id = s.product_id
-join category as c
-on c.category_id = p.category_id
-where
-	w.claim_date >= current_date - interval '2 years'
-group by 1;
-```
-16. Determine the percentage chance of receiving warranty claims after each purchase for each country.
-```sql
-select
-	country,
-	total_units_sold,
-	total_claim,
-	coalesce(total_claim::numeric/total_units_sold::numeric * 100, 0)
-	as risk
-from
-(select
-	st.country,
-	sum(s.quantity) as total_units_sold,
-	count(w.claim_id) as total_claim
-from sales as s
-join stores as st
-on s.store_id = st.store_id
-left join warranty as w
-on w.sale_id = s.sale_id
-group by 1) t1
-order by 4 desc;
-```
-17. Analyze the year-by-year growth ratio for each store.
-```sql
--- each store and their yearly sale 
-WITH yearly_sales
-AS
-(
-	SELECT 
-		s.store_id,
-		st.store_name,
-		EXTRACT(YEAR FROM sale_date) as year,
-		SUM(s.quantity * p.price) as total_sale
-	FROM sales as s
-	JOIN
-	products as p
-	ON s.product_id = p.product_id
-	JOIN stores as st
-	ON st.store_id = s.store_id
-	GROUP BY 1, 2, 3
-	ORDER BY 2, 3 
-),
-growth_ratio
-AS
-(
-SELECT 
-	store_name,
-	year,
-	LAG(total_sale, 1) OVER(PARTITION BY store_name ORDER BY year) as last_year_sale,
-	total_sale as current_year_sale
-FROM yearly_sales
-)
+# Read all sheets
+FILEPATH = 'RAW_data.xlsx'
+dataframes = {}
 
-SELECT 
-	store_name,
-	year,
-	last_year_sale,
-	current_year_sale,
-	ROUND(
-			(current_year_sale - last_year_sale)::numeric/
-							last_year_sale::numeric * 100
-	,3) as growth_ratio
-FROM growth_ratio
-WHERE 
-	last_year_sale IS NOT NULL
-	AND 
-	YEAR <> EXTRACT(YEAR FROM CURRENT_DATE)
-```
-18. Calculate the correlation between product price and warranty claims for products sold in the last five years, segmented by price range.
-```sql
--- products sold in the last five years, segmented by price range.
+# Read each sheet
+iso_df = pd.read_excel(FILEPATH, sheet_name='ISO', engine='calamine')
+eatr_df = pd.read_excel(FILEPATH, sheet_name='EATR', engine='calamine')
+gov_df = pd.read_excel(FILEPATH, sheet_name='GovSupport', engine='calamine')
 
-SELECT 
-	
-	CASE
-		WHEN p.price < 500 THEN 'Less Expenses Product'
-		WHEN p.price BETWEEN 500 AND 1000 THEN 'Mid Range Product'
-		ELSE 'Expensive Product'
-	END as price_segment,
-	COUNT(w.claim_id) as total_Claim
-FROM warranty as w
-LEFT JOIN
-sales as s
-ON w.sale_id = s.sale_id
-JOIN 
-products as p
-ON p.product_id = s.product_id
-WHERE claim_date >= CURRENT_DATE - INTERVAL '5 year'
-GROUP BY 1
-```
-19. Identify the store with the highest percentage of "Paid Repaired" claims relative to total claims filed.
-```sql
-WITH paid_repair
-AS
-(SELECT 
-	s.store_id,
-	COUNT(w.claim_id) as paid_repaired
-FROM sales as s
-RIGHT JOIN warranty as w
-ON w.sale_id = s.sale_id
-WHERE w.repair_status = 'Paid Repaired'
-GROUP BY 1
-),
+# Merge the dataframes
+# First merge EATR with ISO data
+merged_df = pd.merge(eatr_df, iso_df, left_on='code', right_on='code', how='left')
 
-total_repaired
-AS
-(SELECT 
-	s.store_id,
-	COUNT(w.claim_id) as total_repaired
-FROM sales as s
-RIGHT JOIN warranty as w
-ON w.sale_id = s.sale_id
-GROUP BY 1)
+# Then merge with government support data
+final_df = pd.merge(merged_df, gov_df, left_on='code', right_on='ISO', how='left')
 
-SELECT 
-	tr.store_id,
-	st.store_name,
-	pr.paid_repaired,
-	tr.total_repaired,
-	ROUND(pr.paid_repaired::numeric/
-			tr.total_repaired::numeric * 100
-		,2) as percentage_paid_repaired
-FROM paid_repair as pr
-JOIN 
-total_repaired tr
-ON pr.store_id = tr.store_id
-JOIN stores as st
-ON tr.store_id = st.store_id
+# Clean up duplicate columns
+final_df = final_df.drop('ISO', axis=1)
+
+print('Shape of final merged dataset:', final_df.shape)
+print('\
+First few rows of the merged dataset:')
+print(final_df.head())
+print('\
+Summary statistics:')
+print(final_df.describe())
 ```
-20. Write a query to calculate the monthly running total of sales for each store over the past four years and compare trends during this period.
-```sql
-WITH monthly_sales
-AS
-(SELECT 
-	store_id,
-	EXTRACT(YEAR FROM sale_date) as year,
-	EXTRACT(MONTH FROM sale_date) as month,
-	SUM(p.price * s.quantity) as total_revenue
-FROM sales as s
-JOIN 
-products as p
-ON s.product_id = p.product_id
-GROUP BY 1, 2, 3
-ORDER BY 1, 2,3
-)
-SELECT 
-	store_id,
-	month,
-	year,
-	total_revenue,
-	SUM(total_revenue) OVER(PARTITION BY store_id ORDER BY year, month) as running_total
-FROM monthly_sales
+2. However, we notice that there is some missing data, particularly the data regarding the Business R&D expenditure along with the Direct government support for R&D. This could be due to data not being reported by these countries, different reporting periods, countries not participating in the data collection process, or an issue with the merge. We must check for unmatched countries between the datasets.
+```python
+# Check for countries in the merged dataset that have missing rd_gdp or df_gdp values
+missing_govsupport = final_df[final_df['rd_gdp'].isna() | final_df['df_gdp'].isna()]
+
+# Display the countries with missing values
+print('Countries with missing rd_gdp or df_gdp values:')
+print(missing_govsupport[['country', 'code', 'rd_gdp', 'df_gdp']])
+
+# Check if these countries exist in the GovSupport dataset
+missing_in_govsupport = missing_govsupport['code'].isin(gov_df['ISO'])
+print('\
+Are these countries present in the GovSupport dataset?')
+print(missing_in_govsupport.value_counts())
 ```
-21. Analyze product sales trends over time, segmented into key periods: from launch to 6 months, 6-12 months, 12-18 months, and beyond 18 months.
-```sql
-SELECT 
-	p.product_name,
-	CASE 
-		WHEN s.sale_date BETWEEN p.launch_date AND p.launch_date + INTERVAL '6 month' THEN '0-6 month'
-		WHEN s.sale_date BETWEEN  p.launch_date + INTERVAL '6 month'  AND p.launch_date + INTERVAL '12 month' THEN '6-12' 
-		WHEN s.sale_date BETWEEN  p.launch_date + INTERVAL '12 month'  AND p.launch_date + INTERVAL '18 month' THEN '6-12'
-		ELSE '18+'
-	END as plc,
-	SUM(s.quantity) as total_qty_sale
-	
-FROM sales as s
-JOIN products as p
-ON s.product_id = p.product_id
-GROUP BY 1, 2
-ORDER BY 1, 3 DESC 
+3. An issue with the merge is the only one of these issues that we can immediately control, and it is something that we should verify given that some of the missing data in our newly merged tab is present in the original file. We'll check the original "GovSupport" sheet to see if there's an issue with the merge or the data structure itself.
+```python
+# Let's examine the original GovSupport sheet
+gov_df_original = pd.read_excel(FILEPATH, sheet_name='GovSupport', engine='calamine')
+print("Original GovSupport sheet structure:")
+print(gov_df_original.head())
+
+# Check the merge keys
+print("\
+Unique ISO codes in GovSupport sheet:")
+print(gov_df_original['ISO'].unique())
+
+print("\
+Unique codes in EATR sheet:")
+print(eatr_df['code'].unique())
+
+# Check if there's any case mismatch or whitespace issues
+print("\
+Checking for potential case or whitespace issues in ISO codes:")
+print("GovSupport ISO codes with their exact format:")
+for code in gov_df_original['ISO'].unique():
+    print(f"'{code}'", end=" ")
 ```
+4. After looking into this, we see that there is a mismatch between the country codes among the sheets (as some contain asterisks), so we must clean these ISO codes and merge the data once again into an updated file.
+```python
+# Clean the ISO codes in GovSupport sheet by removing asterisks
+gov_df_clean = gov_df_original.copy()
+gov_df_clean['ISO'] = gov_df_clean['ISO'].str.replace('*', '')
+
+# Merge again with clean codes
+merged_df = pd.merge(eatr_df, iso_df, left_on='code', right_on='code', how='left')
+final_df_clean = pd.merge(merged_df, gov_df_clean, left_on='code', right_on='ISO', how='left')
+
+# Clean up duplicate columns
+final_df_clean = final_df_clean.drop('ISO', axis=1)
+
+# Check the previously missing countries
+previously_missing = ['CHN', 'ESP', 'ISR', 'USA']
+print("Values for previously missing countries:")
+print(final_df_clean[final_df_clean['code'].isin(previously_missing)][['country', 'code', 'rd_gdp', 'df_gdp']].head(8))
+
+# Update the entire merged dataset with cleaned ISO codes
+final_df_updated = final_df_clean.copy()
+
+# Display the updated dataset's structure and a preview
+print("Updated merged dataset structure:")
+print(final_df_updated.info())
+print("\
+Preview of the updated dataset:")
+print(final_df_updated.head())
+```
+5. Now that the data is cleaned, we can perform our exploratory data analysis. We start this by visualizing the top ten OECD countries by R&D investment. We find that Israel leads in R&D investment using 4.28% of its GDP, followed by South Korea (3.63%) and Japan (2.60%). One interesting thing to note is that these countries, despite having high levels of R&D investment, have moderate effective average tax rates with R&D incentives.
+```python
+# Filter the dataset for OECD member states
+# Assuming 'OECD' column indicates membership (1 for members, 0 for non-members)
+oecd_data = final_df_updated[final_df_updated['OECD'] == 1]
+
+# Perform exploratory data analysis
+import seaborn as sns
+import matplotlib.pyplot as plt
+```
+6. We’ll now observe the top ten countries for R&D tax subsidies (found by calculating the difference between non-R&D and R&D EATR’s), and we do so as a means of clearly seeing which nations provide the most generous incentives for R&D. We find that Slovakia, France, and Portugal top the list.
+```python
+# Calculate summary statistics for OECD countries
+summary_stats = oecd_data.groupby('country')[['EATR_rd', 'EATR_nrd', 'rd_gdp', 'df_gdp']].mean().sort_values('rd_gdp', ascending=False)
+
+print("\
+Top 10 OECD countries by R&D investment (% of GDP):")
+print(summary_stats[['rd_gdp', 'EATR_rd', 'df_gdp']].head(10))
+```
+7. Next, we’ll visualize the relationship between R&D tax incentives/subsidies and business expenditure for R&D using scatterplots. The first observes the relationship between the EATR on R&D and the business expenditure for R&D, and the second one shows the tax subsidy (which we’ve calculated in the previous step) and its relation to business expenditure for R&D.
+```python
+# Scatter plot: EATR_rd (R&D tax incentives) vs rd_gdp (R&D investment as % of GDP)
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=oecd_data, x='EATR_rd', y='rd_gdp', hue='country', legend=False)
+plt.title('R&D Tax Incentives (EATR_rd) vs R&D Investment (rd_gdp) for OECD Countries')
+plt.xlabel('Effective Average Tax Rate on R&D (EATR_rd)')
+plt.ylabel('R&D Investment as % of GDP (rd_gdp)')
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title='Country')
+plt.grid(True)
+plt.show()
+
+# Correlation analysis
+correlation = oecd_data[['EATR_rd', 'rd_gdp']].corr()
+print("Correlation between EATR_rd and rd_gdp:")
+print(correlation)
+
+# Calculate the tax subsidy (difference between non-R&D and R&D EATR)
+oecd_data['tax_subsidy'] = oecd_data['EATR_nrd'] - oecd_data['EATR_rd']
+
+# Plot tax subsidy vs R&D investment
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=oecd_data, x='tax_subsidy', y='rd_gdp', hue='country', legend=False)
+plt.title('R&D Tax Subsidy vs R&D Investment for OECD Countries')
+plt.xlabel('Tax Subsidy (EATR_nrd - EATR_rd)')
+plt.ylabel('R&D Investment as % of GDP')
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title='Country')
+plt.grid(True)
+plt.show()
+
+# Calculate average tax subsidy by country
+avg_subsidy = oecd_data.groupby('country')['tax_subsidy'].mean().sort_values(ascending=False)
+print("\
+Top 10 countries by R&D tax subsidy:")
+print(avg_subsidy.head(10))
+```
+ ![OECD1](https://github.com/user-attachments/assets/4fd16bd4-4337-43c5-ad8d-e389d327a9b0)
+ ![OECD2](https://github.com/user-attachments/assets/b605cc0b-e0c9-4144-b356-0d7936939d8b)
+8. We find a moderate-positive correlation (0.35) between EATR_rd and rd_gdp, which illustatates that lower tax rates are not particularly significant in determining R&D expenditure by businesses. We also see that some countries that offer high R&D incentives do not necessarily experience higher R&D investment by its firms, and that these investment levels can vary among countries that may possess similar incentives. Other factors like political stability, infrastructure, or human capital may be more significant and could be worth exploring in a separate analysis. Despite our main research question being answered, it may be interesting to explore the relationship between the R&D tax incentives and direct government support for R&D. Thus, we will create a scatterplot illustrating the relationship between EATR_rd and rd_gdp. We will also observe the correlation coefficient of these variables.
+```python
+# Scatter plot: EATR_rd (R&D tax incentives) vs df_gdp (Direct government support for R&D)
+plt.figure(figsize=(10, 6))
+sns.scatterplot(data=oecd_data, x='EATR_rd', y='df_gdp', hue='country')
+plt.title('R&D Tax Incentives (EATR_rd) vs Direct Government Support (df_gdp) for OECD Countries')
+plt.xlabel('Effective Average Tax Rate on R&D (EATR_rd)')
+plt.ylabel('Direct Government Support for R&D as % of GDP (df_gdp)')
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title='Country')
+plt.grid(True)
+plt.show()
+
+# Correlation analysis
+correlation_df_gdp = oecd_data[['EATR_rd', 'df_gdp']].corr()
+print("Correlation between EATR_rd and df_gdp:")
+print(correlation_df_gdp)
+```
+![OECD3](https://github.com/user-attachments/assets/f342e479-b95b-4912-b099-89f2a6b60e28)
+We find that the scatterplot along with the correlation coefficient of -0.11 shows us that countries with higher tax incentives for R&D may rely slightly less on direct government support for R&D, but this relationship is rather weak.
+
+To conclude, we have learned that the R&D tax incentives imposed by OECD member states likely have very little effect on their firms’ investments into R&D, which means that there are likely other factors worth analyzing that could have a more significant effect on R&D in these nations.
 
 ## Project Focus
 
